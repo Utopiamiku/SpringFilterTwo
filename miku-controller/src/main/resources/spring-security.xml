@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc.xsd
+        http://www.springframework.org/schema/security
+        http://www.springframework.org/schema/security/spring-security.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd">
+    <!--开启注解-->
+    <mvc:annotation-driven></mvc:annotation-driven>
+
+    <mvc:default-servlet-handler></mvc:default-servlet-handler>
+    <!--
+    security:http: 拦截请求配置
+    auto-config: 这个是一个自动配置过滤器(Filter)的属性, 设置为true，security框架帮我创建login页面，login处理方法
+    use-expressions:"是否使用spring 的el表达式"，如果使用表达式true：access="hasRole('ROLE_USER')"
+    -->
+    <security:http auto-config="true" use-expressions="true">
+
+        <!--        &lt;!&ndash; 配置拦截的请求地址，pattern=/**代表拦截所有请求，-->
+        <!--access=ROLE_USER，即访问的用户必须有ROLE_USER的角色才可访问-->
+        <!--ROLE_USER写法，ROLE_自定义,须以ROLE_为前缀, 多个以逗号分割,或者-->
+        <!--&ndash;&gt;-->
+        <!--        &lt;!&ndash;        如果配置了use-expressions="true"（使用表达式来表示）则需要加上hasRole（单个）或者hasAnyRole(多个)&ndash;&gt;-->
+        <security:intercept-url pattern="/login.jsp" access="permitAll()"/>
+        <security:intercept-url pattern="/user/demo" access="hasAuthority('permission4')"/>
+        <security:intercept-url pattern="/**" access="hasAnyRole('ROLE_general_manager')"/>
+        <!--        <security:intercept-url pattern="/**" access="isFullyAuthenticated()"/>-->
+        <security:form-login
+                login-page="/login.jsp"
+                login-processing-url="/login"
+                default-target-url="/logout.jsp"
+                password-parameter="userPwd"
+                username-parameter="userName"
+                authentication-failure-handler-ref="myAuthenticationFailureHandler"
+        />
+
+        <!--没有访问权限跳转页面-->
+        <security:access-denied-handler ref="myAccessDeniedHandler"/>
+        <!--                authentication-failure-url="/login.jsp?error=1"-->
+        <!--            authentication-failure-forward-url="error.jsp"/>-->
+        <!--        <security:csrf disabled="true"/>-->
+
+        <security:remember-me
+                token-repository-ref="jdbcTokenRepository"
+                token-validity-seconds="#{60*60*24}"/>
+
+         <!--登录超时 跳转页面-->
+        <security:session-management invalid-session-url="/timeout.jsp"/>
+
+        <!--退出登录-->
+        <security:logout
+                logout-url="/logout"
+                logout-success-url="/login.jsp"
+                delete-cookies="JSESSIONID"
+        />
+    </security:http>
+
+    <!--记住密码-->
+    <bean id="jdbcTokenRepository"
+          class="org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl">
+        <property name="dataSource" ref="dataSource"></property>
+<!--        <property name="createTableOnStartup" value="true"/>-->
+    </bean>
+
+
+
+
+    <!--密码加密-->
+    <bean id="bCryptPasswordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"/>
+    <security:authentication-manager>
+        <security:authentication-provider user-service-ref="userServiceImpl">
+
+            <!--            <security:user-service>-->
+            <!--                <security:user name="miku" password="{noop}123456" authorities="ROLE_USER"/>-->
+            <!--                &lt;!&ndash;                <security:user name="xtkj" password="{noop}xtkj" authorities="ROLE_XTKJ"/>&ndash;&gt;-->
+            <!--            </security:user-service>-->
+
+            <security:password-encoder ref="bCryptPasswordEncoder"/>
+
+        </security:authentication-provider>
+    </security:authentication-manager>
+
+    <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
+        <property name="basename" value="classpath:org/springframework/security/messages_zh_CN"/>
+    </bean>
+    <bean id="localeResolver" class="org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver"></bean>
+</beans>
+        <!-- 国际化信息 -->
+<!--<beans:bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">       &lt;!&ndash; 看这里 :) &ndash;&gt;-->
+<!--<beans:property name="basename" value="classpath:org/springframework/security/messages_zh_CN"/>-->
+<!--</beans:bean>-->
+<!--<beans:bean id="localeResolver" class="org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver"/>-->
